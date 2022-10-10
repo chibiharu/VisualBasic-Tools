@@ -1,0 +1,218 @@
+
+'----- テストを作成 -----
+
+Sub Create_Test()
+    
+    Dim Que As Integer
+    
+    Application.ScreenUpdating = False
+    
+    Call Object
+    
+    Que = MsgBox("指定の内容でテストを作成します。よろしいですか?", vbYesNo)
+    
+    'テストを作成(Yesで発火)
+    If Que = vbYes Then
+        
+        wsc.Visible = True
+        
+        '発火条件審査
+        Call Test_Check
+        
+        'テスト全体の転記
+        Call Posting_Test
+        
+        '各種設定
+        Call Answer_Settings
+        Call Question_Height
+        
+        'テストを作成
+        Call Test_Creation
+        
+    End If
+    
+    Application.ScreenUpdating = True
+    
+End Sub
+
+'----- 発火条件審査 -----
+
+Sub Test_Check()
+
+    Call Object
+    
+    wsb.Select
+    
+    '未記入があったら処理停止
+    If wsb.Range("B5") = "" Or _
+    wsb.Range("B8") = "" Or _
+    wsb.Range("B11") = "" Then
+    
+        MsgBox "未記入の項目があります"
+        
+    End If
+
+End Sub
+
+'----- テスト全体を転記して見栄えを作成 -----
+
+Sub Posting_Test()
+    
+    Call Object
+    
+    'フォーマットの高さ調節
+    wsb.Select
+    Cells.RowHeight = 19.5
+    
+    'テストのタイトル作成
+    wsc.Range("E3") = wsb.Range("B5")
+    
+    'テストの作成
+    wsb.Range("B14:Z10000").Copy Destination:= _
+    wsc.Range("C8")
+
+End Sub
+
+'----- 解答を別セルへコピー(正誤判定の為) -----
+
+Sub Answer_Settings()
+    
+    Dim myRange As Range
+    Dim firstCell As Range
+    Dim My_Row As Long
+    
+    Call Object
+    
+    wsc.Select
+    
+    Set myRange = Cells.Find(what:="解答")
+    
+    '"解答"をT～Z列に複製する
+    If Not myRange Is Nothing Then
+    
+        Set firstCell = myRange
+        
+        Do
+            Set myRange = wsc.Cells.FindNext(myRange)
+         
+            myRange.Activate
+            My_Row = ActiveCell.Row
+            
+            wsc.Range("I" & My_Row, "O" & My_Row).Copy Destination:= _
+            wsc.Range("T" & My_Row, "Z" & My_Row)
+            
+            wsc.Range("I" & My_Row, "O" & My_Row).ClearContents
+            
+            wsc.Range("T" & My_Row, "Z" & My_Row).Interior.ColorIndex = 0
+            
+        Loop While myRange.Address <> firstCell.Address
+        
+    End If
+    
+    'T～Z列を非表示にする
+    Columns("T:Z").Hidden = True
+
+End Sub
+
+'----- 問題文の行の高さ指定 -----
+
+Sub Question_Height()
+
+    Dim myRange As Range
+    Dim firstCell As Range
+    Dim My_Row As Long
+    Dim word As Long
+    
+    Call Object
+    
+    wsc.Select
+    
+    Set myRange = wsc.Cells.Find(what:="問*:")
+    
+    '"問<番号>:"の右のセルの文字数を参照して行の高さ調節
+    If Not myRange Is Nothing Then
+    
+        Set firstCell = myRange
+        
+        Do
+            Set myRange = wsc.Cells.FindNext(myRange)
+         
+            myRange.Activate
+            My_Row = ActiveCell.Row
+            Rows(My_Row).Select
+            word = Len(Range("E" & My_Row))
+        
+            If word > 63 And word <= 124 Then
+                wsc.Select
+                wsc.Rows(My_Row).Select
+                With Selection
+                    .WrapText = True
+                    .RowHeight = 41.25
+                End With
+                
+            ElseIf word > 125 And word <= 186 Then
+                wsc.Select
+                wsc.Rows(My_Row).Select
+                With Selection
+                    .WrapText = True
+                    .RowHeight = 57.75
+                End With
+    
+            ElseIf word > 187 Then
+                wsc.Select
+                wsc.Rows(My_Row).Select
+                With Selection
+                    .WrapText = True
+                    .RowHeight = 81
+                End With
+        
+            End If
+            
+        Loop While myRange.Address <> firstCell.Address
+        
+    End If
+    
+
+End Sub
+
+'----- テストを作成 -----
+
+Sub Test_Creation()
+    
+    Dim book1 As Workbook
+    
+    Call Object
+    
+    '①シート「テスト」,「学習履歴」を表示にする
+    '②シート「問題作成」「作成ツール」「採点表」を非表示にする
+    wsc.Visible = True
+    wsa.Visible = False
+    wsb.Visible = False
+    wsd.Visible = False
+    wsf.Visible = True
+    ws_howtouse.Visible = False
+    wsc.Range("E3").Select
+    
+    'シート名の変更
+    wsc.Name = wsb.Range("B11")
+    
+    '目盛線を非表示にする
+    '見出しを非表示にする
+    '数式バーを非表示にする
+    'リボンを非表示にする
+    ActiveWindow.DisplayGridlines = False
+    ActiveWindow.DisplayHeadings = False
+    Application.DisplayFormulaBar = False
+    Application.ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"", False)"
+    
+    '名前を付けて保存
+    Set book1 = ThisWorkbook
+    book1.SaveCopyAs Filename:=Test_Folder_Path & "\" & File_Name & ".xlsm"
+    
+    '作成したブックをアクティブ
+    Workbooks.Open Test_Folder_Path & "\" & File_Name & ".xlsm"
+    
+    'このブックを閉じる(保存しない)
+    ThisWorkbook.Close SaveChanges:=False
+    
+End Sub
